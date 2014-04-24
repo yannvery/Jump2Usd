@@ -221,7 +221,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
         else
         {
-            description = "JUMP - [STATUT] " + status + " - Maj par " + operatorName + "'\n" + description;
+            description = "JUMP - [STATUT] " + status + " - Maj par " + operatorName + "\n" + description;
         }
         // login
         this.mySID = login(username, password);

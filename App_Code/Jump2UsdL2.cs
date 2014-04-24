@@ -111,6 +111,20 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         return myReturn;
     }
 
+    public void delock(int mySID, string myHandle)
+    {
+        string[] arguments =
+        {
+            myHandle
+        };
+        try
+        {
+            this.myUsdService.callServerMethod(mySID, "delock_cr", "cr", "S", arguments );
+        }
+        catch { }
+        return;
+    }
+
     [WebMethod]
     public UsdObject logComment(string username, string password, string ref_num, string activityType, string activityValue, string activityDate, string operatorName)
     {
@@ -168,6 +182,9 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         {
             this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - Can't update zjump_majdt : " + e.Message);
         }
+
+        //Force Delock
+        delock(this.mySID, myHandle);
 
         //Log Comment
         try
@@ -267,6 +284,10 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             //return this.usdObject;
         //}
         // Set zjump_majdt
+
+        //Force Delock
+        delock(this.mySID, myHandle);
+
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString() }, new string[0]);
@@ -376,6 +397,10 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             //return this.usdObject;
         //}
         // Set zjump_majdt
+
+        //Force Delock
+        delock(this.mySID, myHandle);
+
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString() }, new string[0]);
@@ -466,6 +491,10 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             return this.usdObject;
         }
 
+        //Force Delock
+        delock(this.mySID, myHandle);
+
+
         //Update Object
         try
         {
@@ -544,6 +573,9 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             setReturn("Can't find incident", "3", e.Message, false);
             return this.usdObject;
         }
+
+        //Force Delock
+        delock(this.mySID, myHandle);
 
         //Update Object
         try
@@ -653,6 +685,10 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             //return this.usdObject;
         //}
         // Set zjump_majdt and zjump_grp
+
+        //Force Delock
+        delock(this.mySID, myHandle);
+
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString(), "zjump_grp", group }, new string[0]);

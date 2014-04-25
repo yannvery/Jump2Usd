@@ -1,0 +1,33 @@
+// ----------------------------------------------
+// Yann VERY (YVY) - yann.very@besensaas.com
+// Fichier	: delock.spl
+// Objet	: Fonction de delock passerelle JUMP
+// ----------------------------------------------
+
+cr::delock_cr ( string handle )
+{
+	logf(SIGNIFICANT, "JUMP - delock_cr : début");
+	string wc;
+	int count;
+	object cr_dob;
+	
+	send_wait(0, top_object(), "call_attr", "cr", "dob_by_persid", 0, handle);
+	cr_dob = msg[0];
+
+	object cr_dob_gl;
+	send_wait( 0, cr_dob, "is_co" );
+	logf(SIGNIFICANT, "JUMP - delock_cr 0 - %s", (string) msg[0]);
+	cr_dob_gl = msg[1];
+
+	send_wait( 0, cr_dob_gl, "uncheck" );
+	if (msg_error())
+	{
+		logf(ERROR, "JUMP - delock_cr - Erreur uncheck - %s, %s", msg[2], msg[1]);
+	}
+	else
+	{
+		logf(SIGNIFICANT, "JUMP - delock_cr - OK uncheck - %s", msg[0]);	
+	}
+	logf(SIGNIFICANT, "JUMP - delock_cr : Fin");
+	return;
+}

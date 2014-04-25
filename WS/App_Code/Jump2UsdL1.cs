@@ -10,7 +10,7 @@ using USD_WS;
 /// </summary>
 [WebService(Namespace = "http://localhost/jump_ws/")]
 [WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
-// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line.
 // [System.Web.Script.Services.ScriptService]
 public class Jump2UsdL1 : System.Web.Services.WebService
 {
@@ -27,7 +27,7 @@ public class Jump2UsdL1 : System.Web.Services.WebService
     public Jump2UsdL1()
     {
 
-        this.usdObject = new UsdObject();    
+        this.usdObject = new UsdObject();
     }
 
     public void initializeResource(string methodName)
@@ -107,6 +107,20 @@ public class Jump2UsdL1 : System.Web.Services.WebService
         return myReturn;
     }
 
+    public void delock(int mySID, string myHandle)
+    {
+        string[] arguments =
+        {
+            myHandle
+        };
+        try
+        {
+            this.myUsdService.callServerMethod(mySID, "delock_cr", "cr", "S", arguments );
+        }
+        catch { }
+        return;
+    }
+
     [WebMethod]
     public UsdObject attachEvent(string username, string password, string name, string crpersid)
     {
@@ -141,7 +155,7 @@ public class Jump2UsdL1 : System.Web.Services.WebService
             return this.usdObject;
         }
         this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - Handle : " + myHandle);
-        
+
         // create object
          string[] myAttrVals = {
                 "obj_id",
@@ -195,7 +209,7 @@ public class Jump2UsdL1 : System.Web.Services.WebService
             return this.usdObject;
         }
         this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - SID : " + this.mySID);
-        
+
         //Get Handle
         try
         {
@@ -210,7 +224,10 @@ public class Jump2UsdL1 : System.Web.Services.WebService
             return this.usdObject;
         }
         this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - Handle : " + myHandle);
-        
+
+        //Force Delock
+        delock(this.mySID, myHandle);
+
         //Update CR
         try
         {
@@ -226,7 +243,7 @@ public class Jump2UsdL1 : System.Web.Services.WebService
         }
 
         this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - Incident updated");
-        
+
         // logout
         if (this.mySID != 0)
         {

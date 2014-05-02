@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Web;
@@ -111,11 +111,11 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         return myReturn;
     }
 
-    public void delock(int mySID, string myHandle)
+    public void delock(int mySID, string ref_num)
     {
         string[] arguments =
         {
-            myHandle
+            ref_num
         };
         try
         {
@@ -184,7 +184,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num);
 
         //Log Comment
         try
@@ -286,7 +286,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         // Set zjump_majdt
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num );
 
         try
         {
@@ -399,7 +399,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         // Set zjump_majdt
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num);
 
         try
         {
@@ -492,7 +492,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num);
 
 
         //Update Object
@@ -575,7 +575,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num);
 
         //Update Object
         try
@@ -606,7 +606,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         //DateTime myepoch = DateTime.SpecifyKind(Epoch, DateTimeKind.Local);
         //TimeSpan elapsedTime = saveNow - myepoch;
 
-        // Finalement j'utilise la date UTC pour corriger le problème de h+1
+        // Finalement j'utilise la date UTC pour corriger le probl�me de h+1
         TimeSpan elapsedTime = DateTime.UtcNow - new DateTime(1970, 1, 1);
         return (int)elapsedTime.TotalSeconds;
     }
@@ -687,7 +687,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         // Set zjump_majdt and zjump_grp
 
         //Force Delock
-        delock(this.mySID, myHandle);
+        delock(this.mySID, ref_num);
 
         try
         {

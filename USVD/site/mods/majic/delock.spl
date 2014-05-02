@@ -4,30 +4,36 @@
 // Objet	: Fonction de delock passerelle JUMP
 // ----------------------------------------------
 
-cr::delock_cr ( string handle )
+cr::delock_cr ( string ref_num )
 {
-	logf(SIGNIFICANT, "JUMP - delock_cr : début");
+	logf(SIGNIFICANT, "USVD2JUMP - delock_cr() : debut");
 	string wc;
 	int count;
-	object cr_dob;
+	object cr_domset;
+	wc = format("ref_num = '%s'", ref_num);
 	
-	send_wait(0, top_object(), "call_attr", "cr", "dob_by_persid", 0, handle);
+	logf(SIGNIFICANT, "USVD2JUMP - delock_cr() - wc : %s",wc);
+	send_wait(0, top_object(), "call_attr", "cr", "sync_fetch", "DYNAMIC", wc,  -1, 0);
+	cr_domset = msg[0];
+	logf(SIGNIFICANT, "USVD2JUMP - delock_cr() - count : %d", msg[1]);
+
+	send_wait(0, cr_domset, "dob_by_index", "DEFAULT", 0, 0);
+	object cr_dob;
 	cr_dob = msg[0];
 
 	object cr_dob_gl;
 	send_wait( 0, cr_dob, "is_co" );
-	logf(SIGNIFICANT, "JUMP - delock_cr 0 - %s", (string) msg[0]);
 	cr_dob_gl = msg[1];
-
+	
 	send_wait( 0, cr_dob_gl, "uncheck" );
 	if (msg_error())
 	{
-		logf(ERROR, "JUMP - delock_cr - Erreur uncheck - %s, %s", msg[2], msg[1]);
+		logf(ERROR, "USVD2JUMP - delock_cr - Erreur uncheck - %s, %s", msg[2], msg[1]);
 	}
 	else
 	{
-		logf(SIGNIFICANT, "JUMP - delock_cr - OK uncheck - %s", msg[0]);	
+		logf(SIGNIFICANT, "USVD2JUMP - delock_cr - OK uncheck - %s", msg[0]);	
 	}
-	logf(SIGNIFICANT, "JUMP - delock_cr : Fin");
+	logf(SIGNIFICANT, "USVD2JUMP - delock_cr() : Fin");
 	return;
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Web;
@@ -111,20 +111,6 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         return myReturn;
     }
 
-    public void delock(int mySID, string myHandle)
-    {
-        string[] arguments =
-        {
-            myHandle
-        };
-        try
-        {
-            this.myUsdService.callServerMethod(mySID, "delock_cr", "cr", "S", arguments );
-        }
-        catch { }
-        return;
-    }
-
     [WebMethod]
     public UsdObject logComment(string username, string password, string ref_num, string activityType, string activityValue, string activityDate, string operatorName)
     {
@@ -183,13 +169,26 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - Can't update zjump_majdt : " + e.Message);
         }
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
         //Log Comment
+		int secondsSinceEpoch = stringToEpoch(activityDate);
+        string[] myAttrVals = {
+            "call_req_id",
+            myHandle,
+            "type",
+            "LOG",
+            "time_stamp",
+            secondsSinceEpoch.ToString(),
+            "description",
+            comment
+        };
+        string[] myAttributes = {
+            "id"
+        };
+        string createObjectReturn = "";
+        string newHandle = "";
         try
         {
-            this.myUsdService.logComment(this.mySID, myHandle, comment, 0);
+            this.myUsdService.createObject(this.mySID, "alg", myAttrVals, myAttributes, ref createObjectReturn, ref newHandle);
             setReturn("Log Comment", "0", "", true);
         }
         catch (Exception e)
@@ -285,9 +284,6 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         //}
         // Set zjump_majdt
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString() }, new string[0]);
@@ -313,6 +309,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         this.myWsTools.log("INFO", this.methodName + " - " + this.mySID + " - status handle : " + newStatusHandle);
 
         //Change Status
+		int secondsSinceEpoch = stringToEpoch(activityDate);
         try
         {
             //The webmethod changeStatus (USD) seems to not working with \n on description
@@ -321,7 +318,13 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             string replace = " ";
             Regex rgx = new Regex(pattern);
             string new_desc = rgx.Replace(description, replace);
-            this.myUsdService.changeStatus(this.mySID, myCreatorHandle, myHandle, new_desc, newStatusHandle);
+            myResult = this.myUsdService.changeStatus(this.mySID, myCreatorHandle, myHandle, new_desc, newStatusHandle);
+			// we take handle of the activity -> alg:xxx
+			XmlDocument myValue = new XmlDocument();
+			myValue.LoadXml(myResult);
+            newStatusHandle = myValue.SelectSingleNode("//UDSObject/Handle/text()").Value;
+			// now we update it with the real time
+			this.myUsdService.updateObject(this.mySID, newStatusHandle, new string[] { "time_stamp", secondsSinceEpoch.ToString() }, new string[0]);
             setReturn("Change Status", "0", "", true);
         }
         catch (Exception e)
@@ -398,9 +401,6 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         //}
         // Set zjump_majdt
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString() }, new string[0]);
@@ -412,9 +412,25 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
 
         //Add activity
         solution = "JUMP - [SOLUTION] - Maj par " + operatorName + "\n" + solution;
+		int secondsSinceEpoch = stringToEpoch(activityDate);
+        string[] myAttrVals = {
+            "call_req_id",
+            myHandle,
+            "type",
+            "SOLN",
+            "time_stamp",
+            secondsSinceEpoch.ToString(),
+            "description",
+            solution
+        };
+        string[] myAttributes = {
+            "id"
+        };
+        string createObjectReturn = "";
+        string newHandle = "";
         try
         {
-            this.myUsdService.createActivityLog(this.mySID, myCreatorHandle, myHandle, solution, "SOLN", 0, false);
+            this.myUsdService.createObject(this.mySID, "alg", myAttrVals, myAttributes, ref createObjectReturn, ref newHandle);
             setReturn("Add solution", "0", "", true);
         }
         catch (Exception e)
@@ -449,7 +465,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
 
         TimeSpan t = DateTime.UtcNow - new DateTime(1970, 1, 1);
         int secondsSinceEpoch;
-        String format = "dd/MM/yy HH:mm:ss";
+        String format = "yyyy-MM-dd HH:mm:ss";
         CultureInfo provider = CultureInfo.InvariantCulture;
         DateTime incidentSartDate;
         try
@@ -478,12 +494,21 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         // Get Ticket Handle
+		XmlDocument myValue = new XmlDocument();
+		int my_zdate ;
+		DateTime epoch_old = new DateTime(1970,1,1,0,0,0);
+		string comment_temp = "";
         try
         {
-            XmlDocument myValue = new XmlDocument();
-            myResult = this.myUsdService.doSelect(this.mySID, "cr", "ref_num = '" + ref_num + "' AND active = 1", -1, this.myHandleAttr);
-            myValue.LoadXml(myResult);
+            myResult = this.myUsdService.doSelect(this.mySID, "cr", "ref_num = '" + ref_num + "' AND active = 1", -1, new string[] {"zdate_debut"});
+			myValue.LoadXml(myResult);
             myHandle = myValue.SelectSingleNode("//UDSObject/Handle/text()").Value;
+			if (myValue.SelectSingleNode("//UDSObject/Attributes/Attribute/AttrValue/text()") != null)
+			{
+				my_zdate = int.Parse(myValue.SelectSingleNode("//UDSObject/Attributes/Attribute/AttrValue/text()").Value);
+				epoch_old = epoch_old.AddSeconds(my_zdate);
+				comment_temp = DateTime.SpecifyKind(epoch_old, DateTimeKind.Utc).ToLocalTime().ToString();
+			}
         }
         catch (Exception e)
         {
@@ -491,19 +516,48 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             return this.usdObject;
         }
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
-
-        //Update Object
+        //Update Object without activity
         try
         {
-            myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zdate_debut", secondsSinceEpoch.ToString(), "zjump_majdt", nowEpoch().ToString() }, new string[0]);
+            myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zdate_debut", secondsSinceEpoch.ToString(), "zdate_debut_f", "1", "zjump_majdt", nowEpoch().ToString() }, new string[0]);
             setReturn("IncidentStart updated", "0", incidentSartDate.ToString(), true);
         }
         catch (Exception e)
         {
             setReturn("Incident can't be updated", "4", e.Message, false);
+            return this.usdObject;
+        }
+
+        //Add activity
+		DateTime epoch_new = new DateTime(1970,1,1,0,0,0);
+		epoch_new = epoch_new.AddSeconds(secondsSinceEpoch);
+		string comment = "CHAMP=zdate_debut ANCIEN="+comment_temp+" Créer : '"+DateTime.SpecifyKind(epoch_new, DateTimeKind.Utc).ToLocalTime().ToString()+"'";
+		secondsSinceEpoch = stringToEpoch(activityDate);
+        string[] myAttrVals = {
+            "call_req_id",
+            myHandle,
+            "type",
+            "FLD",
+            "time_stamp",
+            secondsSinceEpoch.ToString(),
+            "description",
+            comment,
+			"action_desc",
+			comment
+        };
+        string[] myAttributes = {
+            "id"
+        };
+        string createObjectReturn = "";
+        string newHandle = "";
+        try
+        {
+            this.myUsdService.createObject(this.mySID, "alg", myAttrVals, myAttributes, ref createObjectReturn, ref newHandle);
+            setReturn("Log Comment", "0", "", true);
+        }
+        catch (Exception e)
+        {
+            setReturn("Log Comment failed", "5", e.Message, false);
             return this.usdObject;
         }
 
@@ -533,7 +587,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
 
         TimeSpan t = DateTime.UtcNow - new DateTime(1970, 1, 1);
         int secondsSinceEpoch;
-        String format = "dd/MM/yy HH:mm:ss";
+        String format = "yyyy-MM-dd HH:mm:ss";
         CultureInfo provider = CultureInfo.InvariantCulture;
         DateTime incidentEndDate;
         try
@@ -553,6 +607,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             setReturn("invalid format : incidentEndDate", "11", e.Message, false);
             return this.usdObject;
         }
+
         // login
         this.mySID = login(username, password);
         if (this.mySID == 0)
@@ -561,12 +616,21 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         // Get Ticket Handle
+		XmlDocument myValue = new XmlDocument();
+		int my_zdate ;
+		DateTime epoch_old = new DateTime(1970,1,1,0,0,0);
+		string comment_temp = "";
         try
         {
-            XmlDocument myValue = new XmlDocument();
-            myResult = this.myUsdService.doSelect(this.mySID, "cr", "ref_num = '" + ref_num + "' AND active = 1", -1, this.myHandleAttr);
+            myResult = this.myUsdService.doSelect(this.mySID, "cr", "ref_num = '" + ref_num + "' AND active = 1", -1, new string[] {"zdate_fin"});
             myValue.LoadXml(myResult);
             myHandle = myValue.SelectSingleNode("//UDSObject/Handle/text()").Value;
+			if (myValue.SelectSingleNode("//UDSObject/Attributes/Attribute/AttrValue/text()") != null)
+			{
+				my_zdate = int.Parse(myValue.SelectSingleNode("//UDSObject/Attributes/Attribute/AttrValue/text()").Value);
+				epoch_old = epoch_old.AddSeconds(my_zdate);
+				comment_temp = DateTime.SpecifyKind(epoch_old, DateTimeKind.Utc).ToLocalTime().ToString();
+			}
         }
         catch (Exception e)
         {
@@ -574,18 +638,48 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
             return this.usdObject;
         }
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
         //Update Object
         try
         {
-            myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zdate_fin", secondsSinceEpoch.ToString(), "zjump_majdt", nowEpoch().ToString() }, new string[0]);
+            myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zdate_fin", secondsSinceEpoch.ToString(), "zdate_fin_f", "1", "zjump_majdt", nowEpoch().ToString() }, new string[0]);
             setReturn("IncidentEnd updated", "0", incidentEndDate.ToString(), true);
         }
         catch (Exception e)
         {
             setReturn("Incident can't be updated", "4", e.Message, false);
+            return this.usdObject;
+        }
+
+        //Add activity
+		DateTime epoch_new = new DateTime(1970,1,1,0,0,0);
+		epoch_new = epoch_new.AddSeconds(secondsSinceEpoch);
+		string comment = "CHAMP=zdate_fin ANCIEN="+comment_temp+" Créer : '"+DateTime.SpecifyKind(epoch_new, DateTimeKind.Utc).ToLocalTime().ToString()+"'";
+		secondsSinceEpoch = stringToEpoch(activityDate);
+        string[] myAttrVals = {
+            "call_req_id",
+            myHandle,
+            "type",
+            "FLD",
+            "time_stamp",
+            secondsSinceEpoch.ToString(),
+            "description",
+            comment,
+			"action_desc",
+			comment
+        };
+        string[] myAttributes = {
+            "id"
+        };
+        string createObjectReturn = "";
+        string newHandle = "";
+        try
+        {
+            this.myUsdService.createObject(this.mySID, "alg", myAttrVals, myAttributes, ref createObjectReturn, ref newHandle);
+            setReturn("Log Comment", "0", "", true);
+        }
+        catch (Exception e)
+        {
+            setReturn("Log Comment failed", "5", e.Message, false);
             return this.usdObject;
         }
 
@@ -616,7 +710,7 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         // activityDate verification
         TimeSpan t = DateTime.UtcNow - new DateTime(1970, 1, 1);
         int secondsSinceEpoch;
-        String format = "dd/MM/yy HH:mm:ss";
+        String format = "yyyy-MM-dd HH:mm:ss";
         CultureInfo provider = CultureInfo.InvariantCulture;
         DateTime jumpDate;
         try
@@ -686,9 +780,6 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         //}
         // Set zjump_majdt and zjump_grp
 
-        //Force Delock
-        delock(this.mySID, myHandle);
-
         try
         {
             myResult = this.myUsdService.updateObject(this.mySID, myHandle, new string[] { "zjump_majdt", nowEpoch().ToString(), "zjump_grp", group }, new string[0]);
@@ -699,9 +790,25 @@ public class Jump2UsdL2 : System.Web.Services.WebService {
         }
 
         //Log Comment
+		int secondsSinceEpoch = stringToEpoch(activityDate);
+        string[] myAttrVals = {
+            "call_req_id",
+            myHandle,
+            "type",
+            "LOG",
+            "time_stamp",
+            secondsSinceEpoch.ToString(),
+            "description",
+            comment
+        };
+        string[] myAttributes = {
+            "id"
+        };
+        string createObjectReturn = "";
+        string newHandle = "";
         try
         {
-            this.myUsdService.logComment(this.mySID, myHandle, comment, 0);
+            this.myUsdService.createObject(this.mySID, "alg", myAttrVals, myAttributes, ref createObjectReturn, ref newHandle);
             setReturn("Change group", "0", "", true);
         }
         catch (Exception e)
